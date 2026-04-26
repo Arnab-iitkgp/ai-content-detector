@@ -1,0 +1,83 @@
+/**
+ * Premium Styling for Inline AI Labels
+ */
+
+.ai-badge-inline {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 100;
+    padding: 6px 12px;
+    border-radius: 0px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+    user-select: none;
+    animation: slideInBadge 0.4s ease-out;
+}
+
+@keyframes slideInBadge {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ai-badge-inline.badge-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.ai-badge-inline.badge-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.ai-badge-inline.badge-safe {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.ai-badge-inline.badge-skipped {
+    background: rgba(75, 85, 99, 0.15); /* Slightly darker gray tint */
+    color: #374151; /* Deeper gray for text */
+    border: 1px solid rgba(75, 85, 99, 0.4); /* Stronger border */
+    font-size: 9px;
+    font-weight: 600; /* Slightly bolder */
+}
+
+.ai-badge-inline.final-badge {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.badge-tag {
+    font-size: 8px;
+    opacity: 0.7;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 1px 4px;
+    border-radius: 4px;
+    margin-left: 4px;
+}
+
+/* Specific Platform Adjustments */
+[data-testid="tweet"] .ai-badge-inline {
+    top: 8px;
+    right: 40px; /* Leave space for the "more" dot menu */
+}
+
+[role="listitem"] .ai-badge-inline {
+    top: 16px;
+    right: 16px;
+}

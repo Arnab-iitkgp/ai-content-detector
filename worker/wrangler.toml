@@ -1,0 +1,12 @@
+name = "ai-detector-proxy"
+main = "index.js"
+compatibility_date = "2024-04-26"
+
+# This allows the worker to run locally without complaining about missing bindings
+[vars]
+# API keys should be set via wrangler secret put or in .dev.vars for local dev
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ai_detector_research"
+database_id = "00000000-0000-0000-0000-000000000000" # Placeholder for local dev

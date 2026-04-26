@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "AI Content Detector",
+  "version": "0.6.0",
+  "description": "Detects AI-generated content in social media feeds using hybrid local + API analysis",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://twitter.com/*",
+        "https://x.com/*",
+        "https://www.linkedin.com/*"
+      ],
+      "js": ["detector.js", "scripts/utils.js", "scripts/api.js", "scripts/platforms.js", "content.js"],
+      "css": ["styles/inject.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

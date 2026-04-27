@@ -166,19 +166,30 @@ function extractTwitterEngagement(article) {
 function extractLinkedInEngagement(listItem) {
     const engagement = { likes: null, comments: null, reposts: null };
 
-    const allSpans = listItem.querySelectorAll('span, button');
-    for (const el of allSpans) {
+    const socialBar = listItem.querySelector('.social-details-social-counts')
+        || listItem.querySelector('[class*="social-details"]')
+        || listItem;
+
+    const allEls = socialBar.querySelectorAll('span, button, a, li');
+    for (const el of allEls) {
         const text = (el.textContent || '').toLowerCase().trim();
         const aria = (el.getAttribute('aria-label') || '').toLowerCase();
 
-        if (aria.includes('reaction') || text.match(/^\d[\d,.kKmM]*\s*reaction/)) {
-            engagement.likes = parseCount(el.textContent);
+        if (aria.includes('reaction') || aria.includes('like')
+            || text.match(/^\d[\d,.kKmM]*\s*reaction/)
+            || text.match(/^\d[\d,.kKmM]*\s*like/)) {
+            const v = parseCount(aria) || parseCount(el.textContent);
+            if (v !== null && engagement.likes === null) engagement.likes = v;
         }
-        if (text.match(/^\d[\d,.kKmM]*\s*comment/) || aria.includes('comment')) {
-            engagement.comments = parseCount(el.textContent);
+
+        if (aria.includes('comment') || text.match(/^\d[\d,.kKmM]*\s*comment/)) {
+            const v = parseCount(aria) || parseCount(el.textContent);
+            if (v !== null && engagement.comments === null) engagement.comments = v;
         }
-        if (text.match(/^\d[\d,.kKmM]*\s*repost/) || aria.includes('repost')) {
-            engagement.reposts = parseCount(el.textContent);
+
+        if (aria.includes('repost') || text.match(/^\d[\d,.kKmM]*\s*repost/)) {
+            const v = parseCount(aria) || parseCount(el.textContent);
+            if (v !== null && engagement.reposts === null) engagement.reposts = v;
         }
     }
 
@@ -247,10 +258,25 @@ async function extractLinkedInPost(listItem) {
     const dedupKey = safeSlice(text, 0, 80);
 
     let authorHandle = null;
-    const authorLink = listItem.querySelector('a[href*="/in/"]');
-    if (authorLink) {
-        const match = authorLink.getAttribute('href').match(/\/in\/([^/?]+)/);
-        if (match) authorHandle = match[1];
+
+    const allLinks = listItem.querySelectorAll('a[href*="/in/"], a[href*="/company/"]');
+    for (const link of allLinks) {
+        const firstP = link.querySelector('p');
+        if (firstP) {
+            const pText = firstP.textContent.trim();
+            if (pText.length > 1 && pText.length < 60) {
+                authorHandle = pText;
+                break;
+            }
+        }
+    }
+
+    if (!authorHandle && allLinks.length > 0) {
+        const href = allLinks[0].getAttribute('href') || '';
+        const inMatch = href.match(/\/in\/([^/?]+)/);
+        const coMatch = href.match(/\/company\/([^/?]+)/);
+        if (inMatch) authorHandle = inMatch[1];
+        else if (coMatch) authorHandle = coMatch[1];
     }
 
     const aiResult = detectAI(text);

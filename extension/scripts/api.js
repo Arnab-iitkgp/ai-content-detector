@@ -1,5 +1,5 @@
 const WORKER_CONFIG = {
-    endpoint: 'http://127.0.0.1:8788/',
+    endpoint: 'http://127.0.0.1:8787/',
     maxRetries: 5,
     rateLimitMs: 800,
     timeoutMs: 15000,

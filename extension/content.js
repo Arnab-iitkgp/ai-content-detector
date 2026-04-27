@@ -1,6 +1,5 @@
 const seenKeys = new Set();
 const cachedFinalScores = new Map();
-let isScanning = false;
 
 function detectPlatform() {
     const url = window.location.hostname;
@@ -21,81 +20,66 @@ chrome.runtime.onMessage.addListener((msg) => {
     }
 });
 
-async function scanForNewPosts() {
-    if (!scannerEnabled || isScanning || curPlatform === 'unknown') return;
-    isScanning = true;
+const postObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const container = entry.target;
+            observer.unobserve(container);
+            processPost(container);
+        }
+    });
+}, { rootMargin: '200px 0px' });
+
+function scanForNewContainers() {
+    if (!scannerEnabled || curPlatform === 'unknown') return;
+
+    if (curPlatform === 'twitter') {
+        const articles = document.querySelectorAll('article[data-testid="tweet"]:not([data-ai-observed])');
+        for (const article of articles) {
+            article.setAttribute('data-ai-observed', 'true');
+            postObserver.observe(article);
+        }
+    } else if (curPlatform === 'linkedin') {
+        const listItems = document.querySelectorAll('[role="listitem"]:not([data-ai-observed])');
+        for (const item of listItems) {
+            item.setAttribute('data-ai-observed', 'true');
+            postObserver.observe(item);
+        }
+    }
+}
+
+async function processPost(container) {
+    if (!scannerEnabled) return;
 
     try {
-        const posts = [];
+        let post = null;
         if (curPlatform === 'twitter') {
-            const articles = document.querySelectorAll('article[data-testid="tweet"]:not([data-ai-key])');
-            if (articles.length > 0) console.log(`[AI-Detector] 🔍 Found ${articles.length} new tweet containers`);
-            for (const article of articles) {
-                try {
-                    const post = await extractTweet(article);
-                    if (post && post.skip) {
-                        article.setAttribute('data-ai-key', 'skipped');
-                        injectLabel(article, 'skipped');
-                        continue;
-                    }
-                    if (post) {
-                        article.setAttribute('data-ai-key', hashString(post.dedupKey));
-                        
-                        if (cachedFinalScores.has(post.dedupKey)) {
-                            injectLabel(article, cachedFinalScores.get(post.dedupKey), true);
-                        } else {
-                            injectLabel(article, post.aiScore);
-                        }
-                        
-                        if (!seenKeys.has(post.dedupKey)) {
-                            seenKeys.add(post.dedupKey);
-                            posts.push(post);
-                        }
-                    } else {
-                        article.setAttribute('data-ai-key', 'invalid');
-                    }
-                } catch (err) {
-                    console.error('[AI-Detector] Tweet extraction error:', err.message);
-                }
-            }
+            post = await extractTweet(container);
         } else if (curPlatform === 'linkedin') {
-            const listItems = document.querySelectorAll('[role="listitem"]:not([data-ai-key])');
-            if (listItems.length > 0) console.log(`[AI-Detector] 🔍 Found ${listItems.length} new LinkedIn containers`);
-            for (const item of listItems) {
-                try {
-                    const post = await extractLinkedInPost(item);
-                    if (post && post.skip) {
-                        item.setAttribute('data-ai-key', 'skipped');
-                        injectLabel(item, 'skipped');
-                        continue;
-                    }
-                    if (post) {
-                        item.setAttribute('data-ai-key', hashString(post.dedupKey));
-                        
-                        if (cachedFinalScores.has(post.dedupKey)) {
-                            injectLabel(item, cachedFinalScores.get(post.dedupKey), true);
-                        } else {
-                            injectLabel(item, post.aiScore);
-                        }
-                        
-                        if (!seenKeys.has(post.dedupKey)) {
-                            seenKeys.add(post.dedupKey);
-                            posts.push(post);
-                        }
-                    } else {
-                        item.setAttribute('data-ai-key', 'invalid');
-                    }
-                } catch (err) {
-                    console.error('[AI-Detector] LinkedIn extraction error:', err.message);
-                }
-            }
+            post = await extractLinkedInPost(container);
         }
 
-        if (posts.length > 0) {
-            posts.forEach(logDetection);
-            savePostsToStorage(posts);
+        if (post && post.skip) {
+            container.setAttribute('data-ai-key', 'skipped');
+            injectLabel(container, 'skipped');
+            return;
+        }
 
-            posts.forEach(post => {
+        if (post) {
+            container.setAttribute('data-ai-key', hashString(post.dedupKey));
+            
+            if (cachedFinalScores.has(post.dedupKey)) {
+                injectLabel(container, cachedFinalScores.get(post.dedupKey), true);
+            } else {
+                injectLabel(container, post.aiScore);
+            }
+            
+            if (!seenKeys.has(post.dedupKey)) {
+                seenKeys.add(post.dedupKey);
+                
+                logDetection(post);
+                savePostsToStorage([post]);
+
                 classifyWithAPI(post).then(apiResult => {
                     if (!apiResult) return;
                     
@@ -116,10 +100,12 @@ async function scanForNewPosts() {
                     const containers = findPostContainers(post.dedupKey);
                     containers.forEach(c => injectLabel(c, post.finalScore, true));
                 });
-            });
+            }
+        } else {
+            container.setAttribute('data-ai-key', 'invalid');
         }
-    } finally {
-        isScanning = false;
+    } catch (err) {
+        console.error('[AI-Detector] Extraction error:', err.message);
     }
 }
 
@@ -212,12 +198,12 @@ function startObserver() {
     }
 
     console.log(`[AI-Detector] Feed found on ${curPlatform}, starting observer`);
-    scanForNewPosts();
+    scanForNewContainers();
 
     let debounceTimer = null;
     activeObserver = new MutationObserver(() => {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(scanForNewPosts, 50);
+        debounceTimer = setTimeout(scanForNewContainers, 50);
     });
 
     activeObserver.observe(target, { childList: true, subtree: true });

@@ -54,7 +54,7 @@ Posts under 20 words are skipped entirely and get a gray "Too short to detect" b
 
 ### The Processing Pipeline (Flow & Queue)
 
-Handling 1,500 participants hitting an external API requires strict queueing and fallback logic:
+Handling large number of users requires strict queueing and fallback logic:
 
 1. **Two-Stage Flow**: Every post (over 20 words) is instantly evaluated by the Local Heuristic Engine, and a badge is injected immediately so the user isn't kept waiting. Simultaneously, *every* valid post is pushed to the API queue for the Sapling API to generate a highly accurate score, which updates the badge once verified.
 2. **LIFO Queue**: Instead of a standard first-come-first-served queue, we use **LIFO** (last-in, first-out). The post you're currently looking at on-screen gets classified first. If you scroll fast, you won't wait 15 seconds for old, off-screen posts to clear the queue before the current one is checked.
@@ -104,7 +104,7 @@ echo 'SAPLING_API_KEY="your_key_here"' > .dev.vars
 npx wrangler dev
 ```
 
-Worker runs on `http://127.0.0.1:8788` by default.
+Worker runs on `http://127.0.0.1:8787` by default.
 
 ### Chrome Extension
 
